@@ -6,15 +6,8 @@ Welcome to the **Forge Engine Project Scaffolder** – a simple CLI tool to quic
 
 Ensure you have **PHP 8.1+** installed on your system.
 
-1. **Download the installer**:
+1. **Download and run the installer**:
 
 ```bash
-   curl -O https://raw.githubusercontent.com/forge-engine/installer/main/installer.php
-   chmod +x installer.php
-```
-
-2. **Run de installer**
-
-```bash
-./installer.php
+   bash <(curl -Ls https://raw.githubusercontent.com/forge-engine/installer/refs/heads/main/installer.sh)
 ```

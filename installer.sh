@@ -2,8 +2,8 @@
 set -e
 
 # --- Constants ---
-STARTER_REPO_BASE_URL="https://github.com/forge-engine/forge-starter/archive/refs/heads/main.zip?path=starter-blank"
-STARTER_TEMPLATE_NAME="starter-blank"
+STARTER_REPO_BASE_URL="https://github.com/forge-engine/forge-starter/archive/refs/heads/main.zip"
+STARTER_TEMPLATE_NAME="forge-starter-main"
 STARTER_ZIP_FILENAME="starter-template.zip"
 GITHUB_ARCHIVE_ROOT_FOLDER="forge-starter-main"
 
@@ -77,6 +77,12 @@ function executeCommand() {
 
 
 
+
+
+
+
+
+
 function deleteProjectDirectory() {
     local projectDir="$1"
     if [ ! -d "$projectDir" ]; then
@@ -106,19 +112,31 @@ function deleteDirectory() {
 
 
 
+
+
+
+
+
+
 function moveExtractedFiles() {
     local sourceDir="$1"
     local destinationDir="$2"
     if [ ! -d "$sourceDir" ]; then
         return 1
     fi
-    mv "$sourceDir"/* "$destinationDir"/
+    mv "$sourceDir"/* "$destinationDir"/ # Corrected line: Move content from sourceDir directly
     if [ $? -ne 0 ]; then
         echo "Error moving files from '$sourceDir' to '$destinationDir'."
         return 1
     fi
     return 0
 }
+
+
+
+
+
+
 
 
 
@@ -147,6 +165,12 @@ function scaffoldNewProject() {
 
 
 
+
+
+
+
+
+
     # 3. Download Starter Template
     starterZipUrl="$STARTER_REPO_BASE_URL"
     starterZipPath="$projectDir/$STARTER_ZIP_FILENAME"
@@ -159,6 +183,12 @@ function scaffoldNewProject() {
         return 1
     fi
     echo "Starter template downloaded."
+
+
+
+
+
+
 
 
 
@@ -176,13 +206,19 @@ function scaffoldNewProject() {
 
 
 
+
+
+
+
+
+
     extractedRootFolder="$projectDir/$GITHUB_ARCHIVE_ROOT_FOLDER"
     # extractedTemplateFolder="$extractedRootFolder/$STARTER_TEMPLATE_NAME" # Not needed because starter-blank is at root now
 
     if [ -d "$extractedRootFolder" ]; then # Check for root extracted folder
         echo "Extracted to: $extractedRootFolder"
 
-        if ! moveExtractedFiles "$extractedRootFolder/$STARTER_TEMPLATE_NAME" "$projectDir"; then # Move content from starter-blank
+        if ! moveExtractedFiles "$extractedRootFolder" "$projectDir"; then # Corrected: Move content from extractedRootFolder directly
             echo "Error: Failed to move files from extracted starter template."
             deleteProjectDirectory "$projectDir"
             echo "\nProject scaffolding cancelled."
@@ -201,6 +237,12 @@ function scaffoldNewProject() {
 
 
 
+
+
+
+
+
+
     # 5. Run install.php
     echo "Running install.php..."
     if ! executeCommand "php install.php" "$projectDir"; then
@@ -210,6 +252,12 @@ function scaffoldNewProject() {
         return 1
     fi
     echo "install.php executed successfully."
+
+
+
+
+
+
 
 
 
@@ -227,6 +275,12 @@ function scaffoldNewProject() {
 
 
 
+
+
+
+
+
+
     # 7. Run php forge.php key:generate
     echo "Running php forge.php forge.php key:generate..."
     if ! executeCommand "php forge.php key:generate" "$projectDir"; then
@@ -236,6 +290,12 @@ function scaffoldNewProject() {
         return 1
     fi
     echo "php forge.php key:generate executed successfully."
+
+
+
+
+
+
 
 
 
@@ -250,6 +310,12 @@ function scaffoldNewProject() {
 
     return 0
 }
+
+
+
+
+
+
 
 
 
@@ -272,6 +338,12 @@ then
     echo "Error: php is not installed. Please install php-cli to continue."
     exit 1
 fi
+
+
+
+
+
+
 
 
 

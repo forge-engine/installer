@@ -3,7 +3,7 @@ set -e
 
 # --- Constants ---
 STARTER_REPO_BASE_URL="https://github.com/forge-engine/forge-starter/archive/refs/heads/main.zip"
-STARTER_TEMPLATE_NAME="forge-starter-main"
+STARTER_TEMPLATE_NAME="starter-blank" # Although the zip root folder is forge-starter-main, the template inside is starter-blank as per URL path
 STARTER_ZIP_FILENAME="starter-template.zip"
 GITHUB_ARCHIVE_ROOT_FOLDER="forge-starter-main"
 
@@ -74,15 +74,6 @@ function executeCommand() {
     return 0
 }
 
-
-
-
-
-
-
-
-
-
 function deleteProjectDirectory() {
     local projectDir="$1"
     if [ ! -d "$projectDir" ]; then
@@ -109,37 +100,21 @@ function deleteDirectory() {
     return 0
 }
 
-
-
-
-
-
-
-
-
-
 function moveExtractedFiles() {
     local sourceDir="$1"
     local destinationDir="$2"
     if [ ! -d "$sourceDir" ]; then
         return 1
     fi
-    mv "$sourceDir"/* "$destinationDir"/ # Corrected line: Move content from sourceDir directly
+    shopt -s dotglob # Enable dotglob to include hidden files in pathname expansion
+    mv "$sourceDir"/* "$destinationDir"/
+    shopt -u dotglob # Disable dotglob after use (good practice)
     if [ $? -ne 0 ]; then
         echo "Error moving files from '$sourceDir' to '$destinationDir'."
         return 1
     fi
     return 0
 }
-
-
-
-
-
-
-
-
-
 
 # --- Main Scaffolding Function ---
 function scaffoldNewProject() {
@@ -162,15 +137,6 @@ function scaffoldNewProject() {
     fi
     echo "\nProject directory created: $projectName"
 
-
-
-
-
-
-
-
-
-
     # 3. Download Starter Template
     starterZipUrl="$STARTER_REPO_BASE_URL"
     starterZipPath="$projectDir/$STARTER_ZIP_FILENAME"
@@ -184,15 +150,6 @@ function scaffoldNewProject() {
     fi
     echo "Starter template downloaded."
 
-
-
-
-
-
-
-
-
-
     # 4. Extract Starter Template
     echo "Extracting starter template..."
     if ! extractZip "$starterZipPath" "$projectDir"; then
@@ -203,22 +160,12 @@ function scaffoldNewProject() {
     fi
     rm -f "$starterZipPath" # Delete zip file
 
-
-
-
-
-
-
-
-
-
     extractedRootFolder="$projectDir/$GITHUB_ARCHIVE_ROOT_FOLDER"
-    # extractedTemplateFolder="$extractedRootFolder/$STARTER_TEMPLATE_NAME" # Not needed because starter-blank is at root now
 
     if [ -d "$extractedRootFolder" ]; then # Check for root extracted folder
         echo "Extracted to: $extractedRootFolder"
 
-        if ! moveExtractedFiles "$extractedRootFolder" "$projectDir"; then # Corrected: Move content from extractedRootFolder directly
+        if ! moveExtractedFiles "$extractedRootFolder" "$projectDir"; then # Move content from extractedRootFolder directly
             echo "Error: Failed to move files from extracted starter template."
             deleteProjectDirectory "$projectDir"
             echo "\nProject scaffolding cancelled."
@@ -234,16 +181,16 @@ function scaffoldNewProject() {
         return 1
     fi
 
+    # 5. Remove .git directory from engine folder
+    echo "Removing .git directory from engine folder..."
+    rm -rf "$projectDir/engine/.git"
+    if [ $? -ne 0 ]; then
+        echo "Warning: Failed to remove .git directory from engine folder. This is not critical, but it's recommended to remove it manually."
+    else
+        echo ".git directory removed from engine folder."
+    fi
 
-
-
-
-
-
-
-
-
-    # 5. Run install.php
+    # 6. Run install.php
     echo "Running install.php..."
     if ! executeCommand "php install.php" "$projectDir"; then
         echo "Error: install.php script failed."
@@ -253,16 +200,7 @@ function scaffoldNewProject() {
     fi
     echo "install.php executed successfully."
 
-
-
-
-
-
-
-
-
-
-    # 6. Run php forge.php install:project
+    # 7. Run php forge.php install:project
     echo "Running php forge.php forge.php install:project..."
     if ! executeCommand "php forge.php install:project" "$projectDir"; then
         echo "Error: php forge.php install:project command failed."
@@ -272,16 +210,7 @@ function scaffoldNewProject() {
     fi
     echo "php forge.php install:project executed successfully."
 
-
-
-
-
-
-
-
-
-
-    # 7. Run php forge.php key:generate
+    # 8. Run php forge.php key:generate
     echo "Running php forge.php forge.php key:generate..."
     if ! executeCommand "php forge.php key:generate" "$projectDir"; then
         echo "Error: php forge.php key:generate command failed."
@@ -290,15 +219,6 @@ function scaffoldNewProject() {
         return 1
     fi
     echo "php forge.php key:generate executed successfully."
-
-
-
-
-
-
-
-
-
 
     echo "\n--------------------------------------------\n"
     echo "Forge Engine project '$projectName' scaffolded successfully!"
@@ -310,15 +230,6 @@ function scaffoldNewProject() {
 
     return 0
 }
-
-
-
-
-
-
-
-
-
 
 # --- Check for required tools ---
 if ! command -v curl &>/dev/null
@@ -338,15 +249,6 @@ then
     echo "Error: php is not installed. Please install php-cli to continue."
     exit 1
 fi
-
-
-
-
-
-
-
-
-
 
 # --- Run the scaffolder ---
 scaffoldNewProject

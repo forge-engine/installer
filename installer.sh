@@ -62,11 +62,11 @@ function extractZip() {
 function executeCommand() {
     local command="$1"
     local workingDir="$2"
-    cd "$workingDir" || return 1 # Change to working directory, exit if fails
+    cd "$workingDir" || return 1
     echo "Running: $command in $(pwd)"
-    eval "$command" # Execute the command
+    eval "$command"
     CMD_RESULT=$?
-    cd - >/dev/null || return 1 # Change back to previous directory, ignore errors if initial cd failed
+    cd - >/dev/null || return 1
     if [ $CMD_RESULT -ne 0 ]; then
         echo "Error: Command '$command' failed with exit code: $CMD_RESULT"
         return 1
@@ -77,7 +77,7 @@ function executeCommand() {
 function deleteProjectDirectory() {
     local projectDir="$1"
     if [ ! -d "$projectDir" ]; then
-        return 0 # Already deleted or doesn't exist
+        return 0
     fi
     echo "Cleaning up project directory: $projectDir"
     rm -rf "$projectDir"
@@ -106,9 +106,9 @@ function moveExtractedFiles() {
     if [ ! -d "$sourceDir" ]; then
         return 1
     fi
-    shopt -s dotglob # Enable dotglob to include hidden files in pathname expansion
+    shopt -s dotglob 
     mv "$sourceDir"/* "$destinationDir"/
-    shopt -u dotglob # Disable dotglob after use (good practice)
+    shopt -u dotglob 
     if [ $? -ne 0 ]; then
         echo "Error moving files from '$sourceDir' to '$destinationDir'."
         return 1
@@ -162,10 +162,10 @@ function scaffoldNewProject() {
 
     extractedRootFolder="$projectDir/$GITHUB_ARCHIVE_ROOT_FOLDER"
 
-    if [ -d "$extractedRootFolder" ]; then # Check for root extracted folder
+    if [ -d "$extractedRootFolder" ]; then
         echo "Extracted to: $extractedRootFolder"
 
-        if ! moveExtractedFiles "$extractedRootFolder" "$projectDir"; then # Move content from extractedRootFolder directly
+        if ! moveExtractedFiles "$extractedRootFolder" "$projectDir"; then 
             echo "Error: Failed to move files from extracted starter template."
             deleteProjectDirectory "$projectDir"
             echo "\nProject scaffolding cancelled."
@@ -173,7 +173,7 @@ function scaffoldNewProject() {
         fi
 
         echo "Starter template extracted and files moved to project root."
-        deleteDirectory "$extractedRootFolder" # Cleanup root folder (forge-starter-main)
+        deleteDirectory "$extractedRootFolder"
     else
         echo "Error: Extracted folder not found: $extractedRootFolder"
         deleteProjectDirectory "$projectDir"

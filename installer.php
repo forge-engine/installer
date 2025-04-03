@@ -87,14 +87,14 @@ function scaffoldNewProject(): void
     }
     echo "install.php executed successfully.\n";
 
-    echo "Running php forge.php install:project...\n";
-    if (!executeCommand("php forge.php install:project", $projectDir)) {
-        echo "Error: php forge.php install:project command failed.\n";
+    echo "Running php forge.php package:install-project...\n";
+    if (!executeCommand("php forge.php package:install-project", $projectDir)) {
+        echo "Error: php forge.php package:install-project command failed.\n";
         deleteProjectDirectory($projectDir);
         echo "\nProject scaffolding cancelled.\n";
         return;
     }
-    echo "php forge.php install:project executed successfully.\n";
+    echo "php forge.php package:install-project executed successfully.\n";
 
     echo "Running php forge.php key:generate...\n";
     if (!executeCommand("php forge.php key:generate", $projectDir)) {
@@ -256,4 +256,3 @@ function moveExtractedFiles(string $sourceDir, string $destinationDir): bool
 
 // Run the scaffolder
 scaffoldNewProject();
-

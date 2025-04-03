@@ -201,9 +201,9 @@ function scaffoldNewProject() {
     echo "install.php executed successfully."
 
     # 7. Run php forge.php install:project
-    echo "Running php forge.php forge.php package:install-project..."
+    echo "Running php forge.php package:install-project..."
     if ! executeCommand "php forge.php package:install-project" "$projectDir"; then
-        echo "Error: php forge.php ppackage:install-project command failed."
+        echo "Error: php forge.php package:install-project command failed."
         deleteProjectDirectory "$projectDir"
         echo "\nProject scaffolding cancelled."
         return 1
@@ -211,7 +211,7 @@ function scaffoldNewProject() {
     echo "php forge.php package:install-project executed successfully."
 
     # 8. Run php forge.php key:generate
-    echo "Running php forge.php forge.php key:generate..."
+    echo "Running php forge.php key:generate..."
     if ! executeCommand "php forge.php key:generate" "$projectDir"; then
         echo "Error: php forge.php key:generate command failed."
         deleteProjectDirectory "$projectDir"
@@ -219,6 +219,16 @@ function scaffoldNewProject() {
         return 1
     fi
     echo "php forge.php key:generate executed successfully."
+    
+    # 7. Run php forge.php install:project
+    echo "Running php forge.php migrate..."
+    if ! executeCommand "php forge.php migrate" "$projectDir"; then
+        echo "Error: php forge.php migrate command failed."
+        deleteProjectDirectory "$projectDir"
+        echo "\nProject scaffolding cancelled."
+        return 1
+    fi
+    echo "php forge.php migrate executed successfully."
 
     echo "\n--------------------------------------------\n"
     echo "Forge Engine project '$projectName' scaffolded successfully!"

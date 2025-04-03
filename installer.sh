@@ -201,9 +201,9 @@ function scaffoldNewProject() {
     echo "install.php executed successfully."
 
     # 7. Run php forge.php install:project
-    echo "Running php forge.php forge.php install:project..."
-    if ! executeCommand "php forge.php install:project" "$projectDir"; then
-        echo "Error: php forge.php install:project command failed."
+    echo "Running php forge.php forge.php pack:project..."
+    if ! executeCommand "php forge.php package:install-project" "$projectDir"; then
+        echo "Error: php forge.php package:install-project command failed."
         deleteProjectDirectory "$projectDir"
         echo "\nProject scaffolding cancelled."
         return 1

@@ -229,31 +229,15 @@ function scaffoldNewProject() {
         return 1
     fi
     echo "php forge.php migrate executed successfully."
-    
-    # 8. Run php forge.php asset:link
-    echo "Running php forge.php asset:link..."
-    if ! executeCommand "php forge.php asset:link --type=module forge-ui"; then
-        echo "Error: php forge.php asset:link command failed."
-        echo "\nProject scaffolding cancelled."
-        return 1
-    fi
-    echo "php forge.php asset:link executed successfully."
-    
-    # 8. Run php forge.php asset:link
-    echo "Running php forge.php asset:link..."
-    if ! executeCommand "php forge.php asset:link --type=module forge-welcome"; then
-        echo "Error: php forge.php asset:link command failed."
-        echo "\nProject scaffolding cancelled."
-        return 1
-    fi
-    echo "php forge.php asset:link executed successfully."
 
     echo "\n--------------------------------------------\n"
     echo "Forge Engine project '$projectName' scaffolded successfully!"
     echo "Project directory: $projectDir"
     echo "\nNext steps:"
     echo "1.  cd $projectName"
-    echo "2.  Start developing your awesome Forge Engine application!"
+    echo "2.  run php forge.php asset:link --type=module forge-welcome"
+    echo "3.  run php forge.php asset:link --type=module forge-ui"
+    echo "4.  Start developing your awesome Forge Engine application!"
     echo "--------------------------------------------\n"
 
     return 0

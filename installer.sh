@@ -238,6 +238,7 @@ function scaffoldNewProject() {
     echo "2.  Run the following commands manually to link assets:"
     echo "    php forge.php asset:link --type=module forge-welcome"
     echo "    php forge.php asset:link --type=module forge-ui"
+    echo "    php forge.php serve to start development server"
     echo "3.  Start developing your awesome Forge Engine application!"
     echo "--------------------------------------------\n"
 

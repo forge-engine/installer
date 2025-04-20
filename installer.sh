@@ -135,13 +135,13 @@ function scaffoldNewProject() {
         echo "\nProject scaffolding cancelled."
         return 1
     fi
-    echo "\nProject directory created: $projectName"
+    echo "📁 Project directory created: $projectName"
 
     # 3. Download Starter Template
     starterZipUrl="$STARTER_REPO_BASE_URL"
     starterZipPath="$projectDir/$STARTER_ZIP_FILENAME"
 
-    echo "Downloading starter template..."
+    echo "📦 Downloading starter template..."
     if ! downloadFile "$starterZipUrl" "$starterZipPath"; then
         echo "Error: Failed to download starter template."
         deleteProjectDirectory "$projectDir"
@@ -163,7 +163,7 @@ function scaffoldNewProject() {
     extractedRootFolder="$projectDir/$GITHUB_ARCHIVE_ROOT_FOLDER"
 
     if [ -d "$extractedRootFolder" ]; then
-        echo "Extracted to: $extractedRootFolder"
+        echo "📂 Extracted to: $extractedRootFolder"
 
         if ! moveExtractedFiles "$extractedRootFolder" "$projectDir"; then 
             echo "Error: Failed to move files from extracted starter template."
@@ -231,16 +231,16 @@ function scaffoldNewProject() {
     echo "php forge.php migrate executed successfully."
 
     echo "\n--------------------------------------------\n"
-    echo "Forge Engine project '$projectName' scaffolded successfully!"
-    echo "Project directory: $projectDir"
-    echo "\nNext steps:"
+    echo "🎉 Forge Engine project '$projectName' scaffolded successfully!"
+    echo "📂 Project directory: $projectDir"
+    echo "🚀 Next steps:"
     echo "1.  cd $projectName"
-    echo "2.  Run the following commands manually to link assets:"
+    echo "2.  Link assets for UI:"
     echo "    php forge.php asset:link --type=module forge-welcome"
     echo "    php forge.php asset:link --type=module forge-ui"
-    echo "    php forge.php serve to start development server"
-    echo "3.  Start developing your awesome Forge Engine application!"
-    echo "--------------------------------------------\n"
+    echo "3.  Start dev server:"
+    echo "    php forge.php serve"
+    echo "Happy coding! ✨"
 
     return 0
 }

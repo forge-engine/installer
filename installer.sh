@@ -229,6 +229,9 @@ function scaffoldNewProject() {
     echo "    php forge.php serve"
     echo "Happy coding!"
 
+    echo "cd $projectDir"
+    echo "php forge.php serve"
+
     return 0
 }
 

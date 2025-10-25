@@ -211,14 +211,14 @@ function scaffoldNewProject() {
     fi
     echo "php forge.php key:generate executed successfully."
 
-    echo "Running php forge.php migrate..."
-    if ! executeCommand "php forge.php migrate --type=all" "$projectDir"; then
-        echo "Error: php forge.php migrate  --type=all command failed."
+    echo "Running php forge.php db:migrate..."
+    if ! executeCommand "php forge.php db:migrate --type=all" "$projectDir"; then
+        echo "Error: php forge.php db:migrate  --type=all command failed."
         deleteProjectDirectory "$projectDir"
         echo "\nProject scaffolding cancelled."
         return 1
     fi
-    echo "php forge.php migrate  --type=all executed successfully."
+    echo "php forge.php db:migrate  --type=all executed successfully."
 
     echo "\n--------------------------------------------\n"
     echo "Forge Engine project '$projectName' scaffolded successfully!"

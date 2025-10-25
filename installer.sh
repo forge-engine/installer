@@ -211,14 +211,41 @@ function scaffoldNewProject() {
     fi
     echo "php forge.php key:generate executed successfully."
 
-#    echo "Running php forge.php db:migrate..."
-#    if ! executeCommand "php forge.php db:migrate --type=all" "$projectDir"; then
-#        echo "Error: php forge.php db:migrate  --type=all command failed."
-#        deleteProjectDirectory "$projectDir"
-#        echo "\nProject scaffolding cancelled."
-#        return 1
-#    fi
-#    echo "php forge.php db:migrate  --type=all executed successfully."
+    echo "Running php forge.php package:install-module..."
+        if ! executeCommand "php forge.php package:install-module --module=forge-error-handler" "$projectDir"; then
+            echo "Error: php forge.php package:install-module --module=error-handler command failed."
+            deleteProjectDirectory "$projectDir"
+            echo "\nProject scaffolding cancelled."
+            return 1
+        fi
+    echo "php forge.php package:install-module --module=forge-logger executed successfully."
+
+    echo "Running php forge.php package:install-module..."
+            if ! executeCommand "php forge.php package:install-module --module=forge-logger" "$projectDir"; then
+                echo "Error: php forge.php package:install-module --module=forge-logger command failed."
+                deleteProjectDirectory "$projectDir"
+                echo "\nProject scaffolding cancelled."
+                return 1
+            fi
+    echo "php forge.php package:install-module --module=forge-logger executed successfully."
+
+    echo "Running php forge.php package:install-module..."
+    if ! executeCommand "php forge.php package:install-module --module=forge-ui" "$projectDir"; then
+        echo "Error: php forge.php package:install-module --module=forge-ui command failed."
+        deleteProjectDirectory "$projectDir"
+        echo "\nProject scaffolding cancelled."
+        return 1
+    fi
+    echo "php forge.php package:install-module --module=forge-ui executed successfully."
+
+     echo "Running php forge.php package:install-module..."
+        if ! executeCommand "php forge.php package:install-module --module=forge-welcome" "$projectDir"; then
+            echo "Error: php forge.php package:install-module --module=forge-welcome command failed."
+            deleteProjectDirectory "$projectDir"
+            echo "\nProject scaffolding cancelled."
+            return 1
+        fi
+    echo "php forge.php package:install-module --module=forge-welcome executed successfully."
 
     echo "\n--------------------------------------------\n"
     echo "Forge Engine project '$projectName' scaffolded successfully!"

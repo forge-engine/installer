@@ -104,9 +104,9 @@ function moveExtractedFiles() {
     if [ ! -d "$sourceDir" ]; then
         return 1
     fi
-    shopt -s dotglob 
+    shopt -s dotglob
     mv "$sourceDir"/* "$destinationDir"/
-    shopt -u dotglob 
+    shopt -u dotglob
     if [ $? -ne 0 ]; then
         echo "Error moving files from '$sourceDir' to '$destinationDir'."
         return 1
@@ -160,7 +160,7 @@ function scaffoldNewProject() {
     if [ -d "$extractedRootFolder" ]; then
         echo "📂 Extracted to: $extractedRootFolder"
 
-        if ! moveExtractedFiles "$extractedRootFolder" "$projectDir"; then 
+        if ! moveExtractedFiles "$extractedRootFolder" "$projectDir"; then
             echo "Error: Failed to move files from extracted starter template."
             deleteProjectDirectory "$projectDir"
             echo "\nProject scaffolding cancelled."
@@ -212,24 +212,6 @@ function scaffoldNewProject() {
     echo "php forge.php key:generate executed successfully."
 
     echo "Running php forge.php package:install-module..."
-        if ! executeCommand "php forge.php package:install-module --module=forge-error-handler" "$projectDir"; then
-            echo "Error: php forge.php package:install-module --module=error-handler command failed."
-            deleteProjectDirectory "$projectDir"
-            echo "\nProject scaffolding cancelled."
-            return 1
-        fi
-    echo "php forge.php package:install-module --module=forge-logger executed successfully."
-
-    echo "Running php forge.php package:install-module..."
-            if ! executeCommand "php forge.php package:install-module --module=forge-logger" "$projectDir"; then
-                echo "Error: php forge.php package:install-module --module=forge-logger command failed."
-                deleteProjectDirectory "$projectDir"
-                echo "\nProject scaffolding cancelled."
-                return 1
-            fi
-    echo "php forge.php package:install-module --module=forge-logger executed successfully."
-
-    echo "Running php forge.php package:install-module..."
     if ! executeCommand "php forge.php package:install-module --module=forge-ui" "$projectDir"; then
         echo "Error: php forge.php package:install-module --module=forge-ui command failed."
         deleteProjectDirectory "$projectDir"
@@ -238,14 +220,23 @@ function scaffoldNewProject() {
     fi
     echo "php forge.php package:install-module --module=forge-ui executed successfully."
 
-     echo "Running php forge.php package:install-module..."
-        if ! executeCommand "php forge.php package:install-module --module=forge-welcome" "$projectDir"; then
-            echo "Error: php forge.php package:install-module --module=forge-welcome command failed."
+     echo "Running php forge.php cache:flush..."
+        if ! executeCommand "php forge.php cache:flush" "$projectDir"; then
+            echo "Error: php forge.php cache:flush command failed."
             deleteProjectDirectory "$projectDir"
             echo "\nProject scaffolding cancelled."
             return 1
         fi
-    echo "php forge.php package:install-module --module=forge-welcome executed successfully."
+    echo "php forge.php cache:flush executed successfully."
+
+    echo "Running php forge.php cache:warm..."
+       if ! executeCommand "php forge.php cache:warm" "$projectDir"; then
+           echo "Error: php forge.php cache:warm command failed."
+           deleteProjectDirectory "$projectDir"
+           echo "\nProject scaffolding cancelled."
+           return 1
+       fi
+   echo "php forge.php cache:warm executed successfully."
 
     echo "\n--------------------------------------------\n"
     echo "Forge Engine project '$projectName' scaffolded successfully!"

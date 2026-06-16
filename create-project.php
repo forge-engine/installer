@@ -164,11 +164,21 @@ if (!file_exists($forgePhpPath)) {
     exit(1);
 }
 
-// Install modules from lock file
+// Install modules from lock file, or run package:install-project if no lock
 echo "\nInstalling modules...\n";
-$exitCode = runCommand('php forge.php package:install-project', $projectPath);
-if ($exitCode !== 0) {
-    echo "Warning: Module installation encountered issues. You may need to run it manually.\n";
+
+// First try installing from forge-lock.json (if it exists)
+$lockResult = installModulesFromLock($projectPath);
+if ($lockResult === -1) {
+    echo "Warning: Module installation from lock file encountered issues.\n";
+} elseif ($lockResult === 0) {
+    // No lock file — rely on pre-bundled ForgePackageManager
+    $exitCode = runCommand('php forge.php package:install-project', $projectPath);
+    if ($exitCode !== 0) {
+        echo "Warning: Module installation encountered issues. You may need to run it manually.\n";
+    } else {
+        echo "✓ Modules installed\n";
+    }
 } else {
     echo "✓ Modules installed\n";
 }
@@ -533,6 +543,95 @@ function runCommand(string $command, string $workingDir): int
     passthru($command, $exitCode);
     chdir($currentDir);
     return $exitCode;
+}
+
+// ─── Module Installation ─────────────────────────────────
+
+function installModulesFromLock(string $projectPath): int
+{
+    $lockPath = $projectPath . '/forge-lock.json';
+    if (!file_exists($lockPath)) {
+        echo "  No forge-lock.json found, skipping module installation.\n";
+        return 0;
+    }
+
+    $lockData = json_decode(file_get_contents($lockPath), true);
+    if (!is_array($lockData) || !isset($lockData['modules']) || empty($lockData['modules'])) {
+        echo "  No modules defined in forge-lock.json.\n";
+        return 0;
+    }
+
+    $modulesDir = $projectPath . '/modules';
+    if (!is_dir($modulesDir)) {
+        if (!mkdir($modulesDir, 0755, true)) {
+            echo "  Error: Failed to create modules directory.\n";
+            return -1;
+        }
+    }
+
+    $installedCount = 0;
+    $hadErrors = false;
+
+    foreach ($lockData['modules'] as $moduleName => $moduleInfo) {
+        echo "  Installing module: {$moduleName}...\n";
+
+        $version = $moduleInfo['version'] ?? null;
+        $modulePath = $moduleInfo['module_path'] ?? null;
+        $expectedHash = $moduleInfo['integrity'] ?? null;
+        $sourceUrl = $moduleInfo['source_config']['url'] ?? null;
+        $sourceBranch = $moduleInfo['source_config']['branch'] ?? 'main';
+
+        if ($version === null || $modulePath === null || $sourceUrl === null) {
+            echo "    Skipping {$moduleName}: missing version, module_path, or source_config.url\n";
+            $hadErrors = true;
+            continue;
+        }
+
+        // Check if module already installed
+        $moduleDir = $modulesDir . '/' . $moduleName;
+        if (is_dir($moduleDir)) {
+            echo "    Already installed, skipping.\n";
+            continue;
+        }
+
+        // Download module ZIP
+        $downloadPath = $modulePath . '/' . $version . '.zip';
+        $zipUrl = generateRawGithubUrl($sourceUrl, $sourceBranch, $downloadPath);
+        $zipPath = $modulesDir . '/' . $moduleName . '.zip';
+
+        if (!downloadFile($zipUrl, $zipPath)) {
+            echo "    Failed to download {$moduleName} from:\n      {$zipUrl}\n";
+            $hadErrors = true;
+            continue;
+        }
+
+        // Verify integrity
+        if ($expectedHash !== null) {
+            if (!verifyFileIntegrity($zipPath, $expectedHash)) {
+                echo "    Integrity check failed for {$moduleName}! Deleting corrupted file.\n";
+                unlink($zipPath);
+                $hadErrors = true;
+                continue;
+            }
+        }
+
+        // Extract
+        if (!extractZip($zipPath, $moduleDir)) {
+            echo "    Failed to extract {$moduleName}.\n";
+            unlink($zipPath);
+            $hadErrors = true;
+            continue;
+        }
+        unlink($zipPath);
+        echo "    ✓ {$moduleName} v{$version} installed\n";
+        $installedCount++;
+    }
+
+    if ($hadErrors) {
+        return -1;
+    }
+
+    return $installedCount > 0 ? 1 : 0;
 }
 
 // ─── Help ─────────────────────────────────────────────────

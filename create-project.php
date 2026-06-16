@@ -49,6 +49,20 @@ if ($options['starter'] !== null) {
     }
 }
 
+// Prompt for project path if not specified
+if ($options['path'] === '.' && !$options['yes']) {
+    echo "\nProject path:\n";
+    echo "  <name>      Create a new directory with that name\n";
+    echo "  <path>      Use the exact path (absolute or relative)\n";
+    echo "  .           Use the current directory\n";
+    $input = prompt("Enter project name or path: ");
+    if ($input === '' || $input === null) {
+        echo "\nProject scaffolding cancelled.\n";
+        exit(0);
+    }
+    $options['path'] = $input;
+}
+
 $projectPath = resolveProjectPath($options['path']);
 
 if ($projectPath === null) {

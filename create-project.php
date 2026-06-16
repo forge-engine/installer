@@ -689,7 +689,7 @@ function downloadForgePackageManager(string $projectPath): int
         }
     }
 
-    $downloadPath = $versionInfo['url'] . '/' . $version . '.zip';
+    $downloadPath = 'modules/' . $versionInfo['url'] . '/' . $version . '.zip';
     $zipUrl = generateRawGithubUrl(MODULE_REGISTRY_URL, MODULE_REGISTRY_BRANCH, $downloadPath);
     $zipPath = $modulesDir . '/ForgePackageManager.zip';
 

@@ -1,7 +1,7 @@
 <?php
 
 define("BASE_PATH", __DIR__);
-const STARTER_REGISTRY_URL = 'https://github.com/forge-engine/starters';
+const STARTER_REGISTRY_URL = 'https://github.com/forge-engine/starter-registry';
 const STARTER_REGISTRY_BRANCH = 'main';
 const STARTER_REGISTRY_MANIFEST_PATH = 'starters.json';
 

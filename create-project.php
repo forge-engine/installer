@@ -4,6 +4,9 @@ define("BASE_PATH", __DIR__);
 const STARTER_REGISTRY_URL = 'https://github.com/forge-engine/starter-registry';
 const STARTER_REGISTRY_BRANCH = 'main';
 const STARTER_REGISTRY_MANIFEST_PATH = 'starters.json';
+const MODULE_REGISTRY_URL = 'https://github.com/forge-engine/modules';
+const MODULE_REGISTRY_BRANCH = 'main';
+const MODULE_REGISTRY_MANIFEST_PATH = 'modules.json';
 
 $options = parseArgv($argv);
 
@@ -164,23 +167,23 @@ if (!file_exists($forgePhpPath)) {
     exit(1);
 }
 
-// Install modules from lock file, or run package:install-project if no lock
+// Install modules
 echo "\nInstalling modules...\n";
 
-// First try installing from forge-lock.json (if it exists)
-$lockResult = installModulesFromLock($projectPath);
-if ($lockResult === -1) {
-    echo "Warning: Module installation from lock file encountered issues.\n";
-} elseif ($lockResult === 0) {
-    // No lock file — rely on pre-bundled ForgePackageManager
+// ForgePackageManager must be installed first — it provides the package management commands
+$pmResult = downloadForgePackageManager($projectPath);
+if ($pmResult === -1) {
+    echo "Warning: Failed to download ForgePackageManager. Module installation may be incomplete.\n";
+} else {
+    echo "✓ ForgePackageManager installed\n";
+
+    // Now run package:install-project which reads forge-lock.json or forge.json
     $exitCode = runCommand('php forge.php package:install-project', $projectPath);
     if ($exitCode !== 0) {
-        echo "Warning: Module installation encountered issues. You may need to run it manually.\n";
+        echo "  Note: package:install-project completed with warnings.\n";
     } else {
         echo "✓ Modules installed\n";
     }
-} else {
-    echo "✓ Modules installed\n";
 }
 
 // Generate app key
@@ -634,7 +637,87 @@ function installModulesFromLock(string $projectPath): int
     return $installedCount > 0 ? 1 : 0;
 }
 
-// ─── Help ─────────────────────────────────────────────────
+function downloadForgePackageManager(string $projectPath): int
+{
+    $forgeJsonPath = $projectPath . '/forge.json';
+    if (!file_exists($forgeJsonPath)) {
+        echo "  forge.json not found, cannot determine ForgePackageManager version.\n";
+        return -1;
+    }
+
+    $forgeData = json_decode(file_get_contents($forgeJsonPath), true);
+    $constraint = $forgeData['modules']['forge-package-manager'] ?? null;
+
+    // Fetch modules registry manifest
+    $manifestUrl = generateRawGithubUrl(MODULE_REGISTRY_URL, MODULE_REGISTRY_BRANCH, MODULE_REGISTRY_MANIFEST_PATH);
+    $manifestJson = @file_get_contents($manifestUrl);
+    if ($manifestJson === false) {
+        echo "  Failed to fetch module registry from:\n    {$manifestUrl}\n";
+        return -1;
+    }
+
+    $manifest = json_decode($manifestJson, true);
+    if (!is_array($manifest) || !isset($manifest['forge-package-manager'])) {
+        echo "  forge-package-manager not found in module registry.\n";
+        return -1;
+    }
+
+    $entry = $manifest['forge-package-manager'];
+    $latest = $entry['latest'] ?? null;
+    $version = $constraint;
+    if ($version === null || $version === '*' || $version === 'latest') {
+        $version = $latest;
+    }
+    if ($version === null) {
+        echo "  Could not resolve version for forge-package-manager.\n";
+        return -1;
+    }
+
+    $versionInfo = $entry['versions'][$version] ?? null;
+    if ($versionInfo === null) {
+        echo "  forge-package-manager version {$version} not found in registry.\n";
+        return -1;
+    }
+
+    echo "  Downloading forge-package-manager (v{$version}) from registry...\n";
+
+    $modulesDir = $projectPath . '/modules';
+    if (!is_dir($modulesDir)) {
+        if (!mkdir($modulesDir, 0755, true)) {
+            echo "  Error: Failed to create modules/ directory.\n";
+            return -1;
+        }
+    }
+
+    $downloadPath = $versionInfo['url'] . '/' . $version . '.zip';
+    $zipUrl = generateRawGithubUrl(MODULE_REGISTRY_URL, MODULE_REGISTRY_BRANCH, $downloadPath);
+    $zipPath = $modulesDir . '/ForgePackageManager.zip';
+
+    if (!downloadFile($zipUrl, $zipPath)) {
+        echo "    Failed to download forge-package-manager from:\n      {$zipUrl}\n";
+        return -1;
+    }
+
+    $expectedHash = $versionInfo['integrity'] ?? null;
+    if ($expectedHash !== null) {
+        if (!verifyFileIntegrity($zipPath, $expectedHash)) {
+            echo "    Integrity check failed! Deleting corrupted file.\n";
+            unlink($zipPath);
+            return -1;
+        }
+    }
+
+    $moduleDir = $modulesDir . '/ForgePackageManager';
+    if (!extractZip($zipPath, $moduleDir)) {
+        echo "    Failed to extract forge-package-manager.\n";
+        unlink($zipPath);
+        return -1;
+    }
+    unlink($zipPath);
+
+    echo "    ✓ forge-package-manager v{$version} installed\n";
+    return 1;
+}
 
 function displayHelp(): void
 {

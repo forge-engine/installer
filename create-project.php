@@ -207,6 +207,24 @@ if (!empty($versionData['post_install'])) {
     echo "✓ Post-install commands completed\n";
 }
 
+// Cache Flush
+echo "\nFlushing cache...\n";
+$exitCode = runCommand('php forge.php cache:flush', $projectPath);
+if ($exitCode !== 0) {
+    echo "Warning: Cache flush failed. You can run it manually with: php forge.php cache:flush\n";
+} else {
+    echo "✓ Cache flushed\n";
+}
+
+// Cache Flush
+echo "\Warming cache...\n";
+$exitCode = runCommand('php forge.php cache:warm', $projectPath);
+if ($exitCode !== 0) {
+    echo "Warning: Cache warm failed. You can run it manually with: php forge.php cache:warm\n";
+} else {
+    echo "✓ Cache warmed\n";
+}
+
 // Success message
 echo "\n";
 echo "── Project Ready! ──────────────────────────────────────\n";

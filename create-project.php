@@ -134,6 +134,11 @@ if (!extractZip($zipPath, $projectPath)) {
 unlink($zipPath);
 echo "✓ Template extracted\n";
 
+if (!file_exists($projectPath . '/.env') && file_exists($projectPath . '/env-example')) {
+    copy($projectPath . '/env-example', $projectPath . '/.env');
+    echo "✓ Created .env file\n";
+}
+
 $engineGitDir = $projectPath . '/kernel/.git';
 if (is_dir($engineGitDir)) {
     recursiveDeleteDirectory($engineGitDir);

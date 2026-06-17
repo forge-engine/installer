@@ -159,7 +159,6 @@ if ($exitCode !== 0) {
 }
 echo "✓ Kernel installed\n";
 
-// Check if forge.php exists before trying to run forge commands
 $forgePhpPath = $projectPath . '/forge.php';
 if (!file_exists($forgePhpPath)) {
     echo "Error: forge.php not found after kernel installation.\n";

@@ -11,7 +11,7 @@ if ! command -v curl &>/dev/null; then
     exit 1
 fi
 
-SCRIPT_URL="https://raw.githubusercontent.com/forge-engine/installer/main/create-project.php"
+SCRIPT_URL="https://raw.githubusercontent.com/forge-kernel/installer/main/create-project.php"
 SCRIPT_PATH="/tmp/forge-create-project.php"
 
 echo "Downloading Forge Project Scaffolder..."

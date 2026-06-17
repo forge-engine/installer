@@ -11,8 +11,8 @@ Ready? Here's the super simple way to get started:
 1. **Grab the installer and run it**:
 
 ```bash
-   bash <(curl -Ls https://raw.githubusercontent.com/forge-engine/installer/refs/heads/main/installer.sh)
+   bash <(curl -Ls https://raw.githubusercontent.com/forge-kernel/installer/refs/heads/main/installer.sh)
 ```
 
-That's it! This little command will do all the heavy lifting for you and set up a fresh Forge Engine project so you 
+That's it! This little command will do all the heavy lifting for you and set up a fresh Forge Engine project so you
 can jump right in and start building something awesome!

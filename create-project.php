@@ -1,10 +1,10 @@
 <?php
 
 define("BASE_PATH", __DIR__);
-const STARTER_REGISTRY_URL = 'https://github.com/forge-engine/starter-registry';
+const STARTER_REGISTRY_URL = 'https://github.com/forge-kernel/starter-template-registry';
 const STARTER_REGISTRY_BRANCH = 'main';
 const STARTER_REGISTRY_MANIFEST_PATH = 'starters.json';
-const MODULE_REGISTRY_URL = 'https://github.com/forge-engine/modules';
+const MODULE_REGISTRY_URL = 'https://github.com/forge-kernel/kernel-module-registry';
 const MODULE_REGISTRY_BRANCH = 'main';
 const MODULE_REGISTRY_MANIFEST_PATH = 'modules.json';
 
@@ -134,19 +134,18 @@ if (!extractZip($zipPath, $projectPath)) {
 unlink($zipPath);
 echo "✓ Template extracted\n";
 
-// Remove .git directory from engine folder if present
-$engineGitDir = $projectPath . '/engine/.git';
+$engineGitDir = $projectPath . '/kernel/.git';
 if (is_dir($engineGitDir)) {
     recursiveDeleteDirectory($engineGitDir);
 }
 
-// Install engine
-echo "\nInstalling engine...\n";
-$engineVersion = $options['engine'] ?? $versionData['engine'] ?? null;
+// Install kernel
+echo "\nInstalling kernel...\n";
+$engineVersion = $options['kernel'] ?? $versionData['kernel'] ?? null;
 
-if (is_dir($projectPath . '/engine')) {
-    echo "Removing existing engine folder...\n";
-    recursiveDeleteDirectory($projectPath . '/engine');
+if (is_dir($projectPath . '/kernel')) {
+    echo "Removing existing kernel folder...\n";
+    recursiveDeleteDirectory($projectPath . '/kernel');
 }
 
 if ($engineVersion !== null && $engineVersion !== 'latest') {
@@ -155,15 +154,15 @@ if ($engineVersion !== null && $engineVersion !== 'latest') {
     $exitCode = runCommand('php install.php', $projectPath);
 }
 if ($exitCode !== 0) {
-    echo "Error: Engine installation failed.\n";
+    echo "Error: Kernel installation failed.\n";
     exit(1);
 }
-echo "✓ Engine installed\n";
+echo "✓ Kernel installed\n";
 
 // Check if forge.php exists before trying to run forge commands
 $forgePhpPath = $projectPath . '/forge.php';
 if (!file_exists($forgePhpPath)) {
-    echo "Error: forge.php not found after engine installation.\n";
+    echo "Error: forge.php not found after kernel installation.\n";
     exit(1);
 }
 
@@ -247,7 +246,7 @@ function parseArgv(array $argv): array
         'help' => false,
         'list' => false,
         'starter' => null,
-        'engine' => null,
+        'kernel' => null,
         'yes' => false,
         'path' => '.',
     ];
@@ -274,14 +273,14 @@ function parseArgv(array $argv): array
                 displayHelp();
                 exit(1);
             }
-        } elseif (str_starts_with($arg, '--engine=')) {
-            $options['engine'] = substr($arg, strlen('--engine='));
-        } elseif ($arg === '--engine') {
+        } elseif (str_starts_with($arg, '--kernel=')) {
+            $options['kernel'] = substr($arg, strlen('--kernel='));
+        } elseif ($arg === '--kernel') {
             if (isset($argv[$i + 1])) {
                 $i++;
-                $options['engine'] = $argv[$i];
+                $options['kernel'] = $argv[$i];
             } else {
-                echo "Error: --engine requires a value.\n";
+                echo "Error: --kernel requires a value.\n";
                 displayHelp();
                 exit(1);
             }
@@ -747,7 +746,7 @@ function displayHelp(): void
     echo "  <path>                   Use the exact path (absolute or relative)\n\n";
     echo "Options:\n";
     echo "  --starter=<name>         Use the specified starter kit (skip interactive picker)\n";
-    echo "  --engine=<version>       Specify the engine version to install (e.g., 5.0.2)\n";
+    echo "  --kernel=<version>       Specify the kernel version to install (e.g., 5.0.2)\n";
     echo "  --yes, -y                Auto-confirm all prompts (for CI/automation)\n";
     echo "  --list, -l               List available starter kits and exit\n";
     echo "  --help, -h               Display this help message\n\n";

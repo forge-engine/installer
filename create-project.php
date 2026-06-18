@@ -8,6 +8,9 @@ const MODULE_REGISTRY_URL = 'https://github.com/forge-kernel/kernel-module-regis
 const MODULE_REGISTRY_BRANCH = 'main';
 const MODULE_REGISTRY_MANIFEST_PATH = 'modules.json';
 
+require_once __DIR__ . '/InteractiveSelect.php';
+
+$interactive = new InteractiveSelect();
 $options = parseArgv($argv);
 
 if ($options['help']) {
@@ -45,11 +48,25 @@ if ($options['starter'] !== null) {
         exit(1);
     }
 
-    $starter = selectStarterInteractive($registry);
+    $starter = selectStarterInteractive($registry, $interactive);
     if ($starter === null) {
         echo "\nProject scaffolding cancelled.\n";
         exit(0);
     }
+}
+
+$finalStarterKey = $starter['key'];
+$starterName = $starter['name'];
+$starterData = $starter['data'];
+$starterVersion = $starter['version'];
+$versionData = $starter['versionData'];
+
+// Check for configurable options
+$selectedOptions = selectConfigOptions($versionData, $interactive, $options['yes']);
+
+// Merge option-specific modules into versionData modules
+if (!empty($selectedOptions)) {
+    $versionData['modules'] = mergeOptionModules($versionData, $selectedOptions);
 }
 
 // Prompt for project path if not specified
@@ -73,14 +90,12 @@ if ($projectPath === null) {
     exit(0);
 }
 
-$finalStarterKey = $starter['key'];
-$starterName = $starter['name'];
-$starterData = $starter['data'];
-$starterVersion = $starter['version'];
-$versionData = $starter['versionData'];
-
 echo "\n";
-echo "── Scaffolding: {$starterName} (v{$starterVersion}) ──────────────────\n";
+echo "── Scaffolding: {$starterName} (v{$starterVersion})";
+if (!empty($selectedOptions)) {
+    echo ' - ' . implode(', ', $selectedOptions);
+}
+echo " ──────────────────\n";
 echo "  Project path: {$projectPath}\n\n";
 
 if (!$options['yes']) {
@@ -127,11 +142,38 @@ if (isset($versionData['integrity'])) {
 }
 
 echo "Extracting starter template...\n";
-if (!extractZip($zipPath, $projectPath)) {
+$extractTempPath = $projectPath . '/.starter-extract';
+if (!extractZip($zipPath, $extractTempPath)) {
     echo "Error: Failed to extract starter template.\n";
+    recursiveDeleteDirectory($extractTempPath);
+    unlink($zipPath);
     exit(1);
 }
 unlink($zipPath);
+
+// Detect structured vs flat template
+$basePath = $extractTempPath . '/base';
+if (is_dir($basePath)) {
+    // Structured template: copy base, then overlay selected options
+    echo "  Copying base template...\n";
+    copyDirectory($basePath, $projectPath);
+
+    if (!empty($selectedOptions)) {
+        foreach ($selectedOptions as $optionDir) {
+            $optionSourcePath = $extractTempPath . '/' . $optionDir;
+            if (is_dir($optionSourcePath)) {
+                echo "  Applying '{$optionDir}'...\n";
+                copyDirectory($optionSourcePath, $projectPath);
+            }
+        }
+    }
+} else {
+    // Flat template (backward compatibility): extract directly
+    copyDirectory($extractTempPath, $projectPath);
+}
+
+// Clean up extraction temp
+recursiveDeleteDirectory($extractTempPath);
 echo "✓ Template extracted\n";
 
 if (!file_exists($projectPath . '/.env') && file_exists($projectPath . '/env-example')) {
@@ -219,8 +261,8 @@ if ($exitCode !== 0) {
     echo "✓ Cache flushed\n";
 }
 
-// Cache Flush
-echo "\Warming cache...\n";
+// Cache Warm
+echo "\nWarming cache...\n";
 $exitCode = runCommand('php forge.php cache:warm', $projectPath);
 if ($exitCode !== 0) {
     echo "Warning: Cache warm failed. You can run it manually with: php forge.php cache:warm\n";
@@ -374,58 +416,27 @@ function selectStarter(array $registry, string $preferredName): ?array
     return null;
 }
 
-function selectStarterInteractive(array $registry): ?array
+function selectStarterInteractive(array $registry, InteractiveSelect $interactive): ?array
 {
-    $items = [];
-    $default = null;
-    $i = 1;
+    $labels = [];
+    $keys = [];
+    $defaultIndex = null;
 
     foreach ($registry as $key => $starter) {
-        $label = $starter['name'] ?? $key;
+        $name = $starter['name'] ?? $key;
         $description = isset($starter['description']) ? ' - ' . $starter['description'] : '';
-        $items[] = [
-            'key' => $key,
-            'label' => "{$i}) {$label}{$description}",
-            'starter' => $starter,
-        ];
-        if ($default === null) {
-            $default = $i;
-        }
-        $i++;
+        $labels[] = "{$name}{$description}";
+        $keys[] = $key;
     }
 
-    echo "\n";
-    echo "Available starters:\n";
-    foreach ($items as $item) {
-        echo "  " . $item['label'] . "\n";
-    }
-    echo "\n";
+    $selectedIndex = $interactive->select($labels, 'Select a starter', 0);
 
-    $input = prompt("Select a starter (1-" . count($items) . ", default: {$default}): ");
-
-    if ($input === '' || $input === null) {
-        $selection = $default;
-    } elseif (ctype_digit($input)) {
-        $selection = (int) $input;
-    } else {
-        // Try to match by name
-        $inputLower = strtolower(trim($input));
-        foreach ($items as $idx => $item) {
-            if (strtolower($item['key']) === $inputLower) {
-                return buildStarterResult($item['key'], $item['starter']);
-            }
-        }
-        echo "Invalid selection. Using default ({$default}).\n";
-        $selection = $default;
+    if ($selectedIndex === null) {
+        return null;
     }
 
-    if ($selection < 1 || $selection > count($items)) {
-        echo "Invalid selection. Using default ({$default}).\n";
-        $selection = $default;
-    }
-
-    $selected = $items[$selection - 1];
-    return buildStarterResult($selected['key'], $selected['starter']);
+    $selectedKey = $keys[$selectedIndex];
+    return buildStarterResult($selectedKey, $registry[$selectedKey]);
 }
 
 function buildStarterResult(string $key, array $starter): ?array
@@ -475,6 +486,145 @@ function displayStarterList(array $registry): void
     }
 }
 
+// ─── Config Options Wizard ─────────────────────────────────
+
+function selectConfigOptions(array $versionData, InteractiveSelect $interactive, bool $autoYes): array
+{
+    $config = $versionData['config'] ?? null;
+    if ($config === null || !isset($config['options']) || empty($config['options'])) {
+        return [];
+    }
+
+    echo "\n── Starter Configuration ──────────────────────────────\n";
+
+    $selectedValues = [];
+
+    foreach ($config['options'] as $optionDef) {
+        $key = $optionDef['key'] ?? '';
+        $label = $optionDef['label'] ?? $key;
+        $type = $optionDef['type'] ?? 'select';
+        $required = $optionDef['required'] ?? false;
+        $default = $optionDef['default'] ?? null;
+        $choices = $optionDef['options'] ?? [];
+
+        if (empty($key) || empty($choices)) {
+            continue;
+        }
+
+        $choiceLabels = [];
+        $choiceValues = [];
+
+        foreach ($choices as $choice) {
+            $choiceLabels[] = ($choice['label'] ?? $choice['value']) .
+                (isset($choice['description']) ? ' (' . $choice['description'] . ')' : '');
+            $choiceValues[] = $choice['value'];
+        }
+
+        if ($type === 'multi-select') {
+            $defaultIndices = [];
+            if ($default !== null && is_array($default)) {
+                foreach ($default as $dv) {
+                    $idx = array_search($dv, $choiceValues, true);
+                    if ($idx !== false) {
+                        $defaultIndices[] = $idx;
+                    }
+                }
+            }
+
+            if ($autoYes) {
+                $selected = $defaultIndices;
+            } else {
+                $selected = $interactive->multiSelect($choiceLabels, $label, $defaultIndices);
+            }
+
+            if ($selected === null) {
+                if ($required) {
+                    echo "  '{$label}' is required. Using defaults.\n";
+                    $selected = $defaultIndices;
+                } else {
+                    continue;
+                }
+            }
+
+            $values = [];
+            foreach ($selected as $idx) {
+                $values[] = $choiceValues[$idx];
+            }
+            $selectedValues[$key] = $values;
+            echo "  {$label}: " . implode(', ', $values) . "\n";
+        } else {
+            $defaultIndex = null;
+            if ($default !== null) {
+                $idx = array_search($default, $choiceValues, true);
+                if ($idx !== false) {
+                    $defaultIndex = $idx;
+                }
+            }
+
+            if ($autoYes) {
+                $selectedIdx = $defaultIndex ?? 0;
+            } else {
+                $selectedIdx = $interactive->select($choiceLabels, $label, $defaultIndex);
+            }
+
+            if ($selectedIdx === null) {
+                if ($required) {
+                    echo "  '{$label}' is required. Using default.\n";
+                    $selectedIdx = $defaultIndex ?? 0;
+                } else {
+                    $selectedValues[$key] = $default;
+                    continue;
+                }
+            }
+
+            $value = $choiceValues[$selectedIdx];
+            $selectedValues[$key] = $value;
+            echo "  {$label}: {$value}\n";
+        }
+    }
+
+    echo "\n";
+
+    // Collect option directory names to overlay
+    $optionDirs = [];
+    foreach ($selectedValues as $key => $value) {
+        if (is_array($value)) {
+            $optionDirs = array_merge($optionDirs, $value);
+        } else {
+            $optionDirs[] = $value;
+        }
+    }
+
+    return $optionDirs;
+}
+
+function mergeOptionModules(array $versionData, array $selectedOptions): array
+{
+    $modules = $versionData['modules'] ?? [];
+
+    $config = $versionData['config'] ?? [];
+    $optionDefs = $config['options'] ?? [];
+
+    foreach ($optionDefs as $optionDef) {
+        $modulesDef = $optionDef['modules'] ?? null;
+        if ($modulesDef === null) {
+            continue;
+        }
+
+        foreach ($modulesDef as $optionValue => $optionModules) {
+            if (in_array($optionValue, $selectedOptions, true)) {
+                foreach ($optionModules as $modName => $modVersion) {
+                    if (!isset($modules[$modName])) {
+                        $modules[$modName] = $modVersion;
+                    }
+                }
+            }
+        }
+    }
+
+    return $modules;
+}
+
 // ─── I/O ──────────────────────────────────────────────────
 
 function prompt(string $message): string
@@ -486,6 +636,34 @@ function prompt(string $message): string
         return '';
     }
     return trim($input);
+}
+
+// ─── Filesystem ───────────────────────────────────────────
+
+function copyDirectory(string $source, string $destination): void
+{
+    if (!is_dir($destination)) {
+        mkdir($destination, 0755, true);
+    }
+
+    $iterator = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS),
+        \RecursiveIteratorIterator::SELF_FIRST
+    );
+
+    foreach ($iterator as $item) {
+        $relativePath = $iterator->getSubPathname();
+
+        $target = $destination . '/' . $relativePath;
+
+        if ($item->isDir()) {
+            if (!is_dir($target)) {
+                mkdir($target, 0755, true);
+            }
+        } else {
+            copy($item->getPathname(), $target);
+        }
+    }
 }
 
 // ─── Helpers (from install.php) ───────────────────────────
@@ -538,8 +716,8 @@ function recursiveDeleteDirectory(string $dirPath): bool
     }
 
     $files = new \RecursiveIteratorIterator(
-        new \RecursiveDirectoryIterator($dirPath, FilesystemIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::CHILD_FIRST
+        new \RecursiveDirectoryIterator($dirPath, \FilesystemIterator::SKIP_DOTS),
+        \RecursiveIteratorIterator::CHILD_FIRST
     );
 
     foreach ($files as $fileinfo) {
@@ -747,7 +925,7 @@ function displayHelp(): void
     echo "Arguments:\n";
     echo "  .                        Scaffold in the current directory\n";
     echo "  <name>                   Create a new directory with the given name\n";
-    echo "  <path>                   Use the exact path (absolute or relative)\n\n";
+    echo "  <path>      Use the exact path (absolute or relative)\n\n";
     echo "Options:\n";
     echo "  --starter=<name>         Use the specified starter kit (skip interactive picker)\n";
     echo "  --kernel=<version>       Specify the kernel version to install (e.g., 5.0.2)\n";

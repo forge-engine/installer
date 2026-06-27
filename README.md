@@ -1,18 +1,16 @@
-# Quick Start Your Forge Engine Project!
+# Forge Installer
 
-Hey there! Welcome to the **Forge Engine Project Scaffolder** – think of this as your little helper tool to get a brand new Forge Engine project up and running in no time.
+Bootstraps a new project from a blueprint. Downloads the kernel, sets up the
+project structure, and prepares your application foundation.
 
-## Getting Started
+## Requirements
 
-First things first, you'll need **PHP 8.2 or newer** installed on your machine.
+PHP 8.2 or newer.
 
-Ready? Here's the super simple way to get started:
-
-1. **Grab the installer and run it**:
+## Usage
 
 ```bash
-   bash <(curl -Ls https://raw.githubusercontent.com/forge-kernel/installer/refs/heads/main/installer.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/forge-kernel/installer/refs/heads/main/installer.sh)
 ```
 
-That's it! This little command will do all the heavy lifting for you and set up a fresh Forge Engine project so you
-can jump right in and start building something awesome!
+Then follow the prompts to select a blueprint and configure your project.

@@ -1,9 +1,9 @@
 <?php
 
 define("BASE_PATH", __DIR__);
-const STARTER_REGISTRY_URL = 'https://github.com/forge-kernel/starter-template-registry';
-const STARTER_REGISTRY_BRANCH = 'main';
-const STARTER_REGISTRY_MANIFEST_PATH = 'starters.json';
+const BLUEPRINT_REGISTRY_URL = 'https://github.com/forge-kernel/blueprint-registry';
+const BLUEPRINT_REGISTRY_BRANCH = 'main';
+const BLUEPRINT_REGISTRY_MANIFEST_PATH = 'blueprints.json';
 const MODULE_REGISTRY_URL = 'https://github.com/forge-kernel/kernel-module-registry';
 const MODULE_REGISTRY_BRANCH = 'main';
 const MODULE_REGISTRY_MANIFEST_PATH = 'modules.json';
@@ -19,47 +19,47 @@ if ($options['help']) {
 }
 
 if ($options['list']) {
-    $registry = getStarterRegistry();
+    $registry = getBlueprintRegistry();
     if ($registry === null) {
-        echo "Error: Failed to fetch starter registry.\n";
+        echo "Error: Failed to fetch blueprint registry.\n";
         exit(1);
     }
-    displayStarterList($registry);
+    displayBlueprintList($registry);
     exit(0);
 }
 
-if ($options['starter'] !== null) {
-    $registry = getStarterRegistry();
+if ($options['blueprint'] !== null) {
+    $registry = getBlueprintRegistry();
     if ($registry === null) {
-        echo "Error: Failed to fetch starter registry.\n";
+        echo "Error: Failed to fetch blueprint registry.\n";
         exit(1);
     }
 
-    $starter = selectStarter($registry, $options['starter']);
-    if ($starter === null) {
-        echo "Error: Starter '{$options['starter']}' not found.\n";
-        echo "Run with --list to see available starters.\n";
+    $blueprint = selectBlueprint($registry, $options['blueprint']);
+    if ($blueprint === null) {
+        echo "Error: Blueprint '{$options['blueprint']}' not found.\n";
+        echo "Run with --list to see available blueprints.\n";
         exit(1);
     }
 } else {
-    $registry = getStarterRegistry();
+    $registry = getBlueprintRegistry();
     if ($registry === null) {
-        echo "Error: Failed to fetch starter registry.\n";
+        echo "Error: Failed to fetch blueprint registry.\n";
         exit(1);
     }
 
-    $starter = selectStarterInteractive($registry, $interactive);
-    if ($starter === null) {
+    $blueprint = selectBlueprintInteractive($registry, $interactive);
+    if ($blueprint === null) {
         echo "\nProject scaffolding cancelled.\n";
         exit(0);
     }
 }
 
-$finalStarterKey = $starter['key'];
-$starterName = $starter['name'];
-$starterData = $starter['data'];
-$starterVersion = $starter['version'];
-$versionData = $starter['versionData'];
+$finalBlueprintKey = $blueprint['key'];
+$blueprintName = $blueprint['name'];
+$blueprintData = $blueprint['data'];
+$blueprintVersion = $blueprint['version'];
+$versionData = $blueprint['versionData'];
 
 // Check for configurable options
 $selectedOptions = selectConfigOptions($versionData, $interactive, $options['yes']);
@@ -91,7 +91,7 @@ if ($projectPath === null) {
 }
 
 echo "\n";
-echo "── Scaffolding: {$starterName} (v{$starterVersion})";
+echo "── Scaffolding: {$blueprintName} (v{$blueprintVersion})";
 if (!empty($selectedOptions)) {
     echo ' - ' . implode(', ', $selectedOptions);
 }
@@ -118,16 +118,16 @@ if (!is_dir($projectPath)) {
     echo "✓ Using existing directory\n";
 }
 
-// Download starter template
-echo "\nDownloading starter template...\n";
-$downloadPath = 'starters/' . $versionData['url'] . '/' . $starterVersion . '.zip';
-$zipUrl = generateRawGithubUrl(STARTER_REGISTRY_URL, STARTER_REGISTRY_BRANCH, $downloadPath);
+// Download blueprint template
+echo "\nDownloading blueprint template...\n";
+$downloadPath = 'blueprints/' . $versionData['url'] . '/' . $blueprintVersion . '.zip';
+$zipUrl = generateRawGithubUrl(BLUEPRINT_REGISTRY_URL, BLUEPRINT_REGISTRY_BRANCH, $downloadPath);
 
-$zipPath = $projectPath . '/starter-template.zip';
+$zipPath = $projectPath . '/blueprint-template.zip';
 if (!downloadFile($zipUrl, $zipPath)) {
-    echo "Error: Failed to download starter template.\n";
+    echo "Error: Failed to download blueprint template.\n";
     echo "URL: {$zipUrl}\n";
-    echo "Check that the version exists in the starter registry.\n";
+    echo "Check that the version exists in the blueprint registry.\n";
     exit(1);
 }
 echo "✓ Template downloaded\n";
@@ -141,10 +141,10 @@ if (isset($versionData['integrity'])) {
     echo "✓ Integrity verified\n";
 }
 
-echo "Extracting starter template...\n";
-$extractTempPath = $projectPath . '/.starter-extract';
+echo "Extracting blueprint template...\n";
+$extractTempPath = $projectPath . '/.blueprint-extract';
 if (!extractZip($zipPath, $extractTempPath)) {
-    echo "Error: Failed to extract starter template.\n";
+    echo "Error: Failed to extract blueprint template.\n";
     recursiveDeleteDirectory($extractTempPath);
     unlink($zipPath);
     exit(1);
@@ -273,7 +273,7 @@ if ($exitCode !== 0) {
 // Success message
 echo "\n";
 echo "── Project Ready! ──────────────────────────────────────\n";
-echo "  Starter: {$starterName} v{$starterVersion}\n";
+echo "  Blueprint: {$blueprintName} v{$blueprintVersion}\n";
 echo "  Location: {$projectPath}\n";
 echo "\n";
 echo "  Next steps:\n";
@@ -291,7 +291,7 @@ function parseArgv(array $argv): array
     $options = [
         'help' => false,
         'list' => false,
-        'starter' => null,
+        'blueprint' => null,
         'kernel' => null,
         'yes' => false,
         'path' => '.',
@@ -308,14 +308,14 @@ function parseArgv(array $argv): array
             $options['list'] = true;
         } elseif ($arg === '--yes' || $arg === '-y') {
             $options['yes'] = true;
-        } elseif (str_starts_with($arg, '--starter=')) {
-            $options['starter'] = substr($arg, strlen('--starter='));
-        } elseif ($arg === '--starter') {
+        } elseif (str_starts_with($arg, '--blueprint=')) {
+            $options['blueprint'] = substr($arg, strlen('--blueprint='));
+        } elseif ($arg === '--blueprint') {
             if (isset($argv[$i + 1])) {
                 $i++;
-                $options['starter'] = $argv[$i];
+                $options['blueprint'] = $argv[$i];
             } else {
-                echo "Error: --starter requires a value.\n";
+                echo "Error: --blueprint requires a value.\n";
                 displayHelp();
                 exit(1);
             }
@@ -379,90 +379,90 @@ function getRelativePath(string $path): string
     return $path;
 }
 
-// ─── Starter Registry ──────────────────────────────────────
+// ─── Blueprint Registry ────────────────────────────────────
 
-function getStarterRegistry(): ?array
+function getBlueprintRegistry(): ?array
 {
-    echo "Fetching available starters...\n";
-    $manifestUrl = generateRawGithubUrl(STARTER_REGISTRY_URL, STARTER_REGISTRY_BRANCH, STARTER_REGISTRY_MANIFEST_PATH);
+    echo "Fetching available blueprints...\n";
+    $manifestUrl = generateRawGithubUrl(BLUEPRINT_REGISTRY_URL, BLUEPRINT_REGISTRY_BRANCH, BLUEPRINT_REGISTRY_MANIFEST_PATH);
 
     $json = @file_get_contents($manifestUrl);
     if ($json === false) {
-        echo "Error: Could not fetch starter registry from:\n  {$manifestUrl}\n";
+        echo "Error: Could not fetch blueprint registry from:\n  {$manifestUrl}\n";
         echo "Check your internet connection.\n";
         return null;
     }
 
     $data = json_decode($json, true);
-    if (!is_array($data) || !isset($data['starters'])) {
-        echo "Error: Invalid starter registry format.\n";
+    if (!is_array($data) || !isset($data['blueprints'])) {
+        echo "Error: Invalid blueprint registry format.\n";
         return null;
     }
 
-    echo "✓ Found " . count($data['starters']) . " starter(s)\n";
-    return $data['starters'];
+    echo "✓ Found " . count($data['blueprints']) . " blueprint(s)\n";
+    return $data['blueprints'];
 }
 
-function selectStarter(array $registry, string $preferredName): ?array
+function selectBlueprint(array $registry, string $preferredName): ?array
 {
     $preferredName = strtolower(trim($preferredName));
 
-    foreach ($registry as $key => $starter) {
+    foreach ($registry as $key => $blueprint) {
         if (strtolower($key) === $preferredName) {
-            return buildStarterResult($key, $starter);
+            return buildBlueprintResult($key, $blueprint);
         }
     }
 
     return null;
 }
 
-function selectStarterInteractive(array $registry, InteractiveSelect $interactive): ?array
+function selectBlueprintInteractive(array $registry, InteractiveSelect $interactive): ?array
 {
     $labels = [];
     $keys = [];
     $defaultIndex = null;
 
-    foreach ($registry as $key => $starter) {
-        $name = $starter['name'] ?? $key;
-        $description = isset($starter['description']) ? ' - ' . $starter['description'] : '';
+    foreach ($registry as $key => $blueprint) {
+        $name = $blueprint['name'] ?? $key;
+        $description = isset($blueprint['description']) ? ' - ' . $blueprint['description'] : '';
         $labels[] = "{$name}{$description}";
         $keys[] = $key;
     }
 
-    $selectedIndex = $interactive->select($labels, 'Select a starter', 0);
+    $selectedIndex = $interactive->select($labels, 'Select a blueprint', 0);
 
     if ($selectedIndex === null) {
         return null;
     }
 
     $selectedKey = $keys[$selectedIndex];
-    return buildStarterResult($selectedKey, $registry[$selectedKey]);
+    return buildBlueprintResult($selectedKey, $registry[$selectedKey]);
 }
 
-function buildStarterResult(string $key, array $starter): ?array
+function buildBlueprintResult(string $key, array $blueprint): ?array
 {
-    $latest = $starter['latest'] ?? null;
-    if ($latest === null || !isset($starter['versions'][$latest])) {
-        echo "Error: Starter '{$key}' has no valid version.\n";
+    $latest = $blueprint['latest'] ?? null;
+    if ($latest === null || !isset($blueprint['versions'][$latest])) {
+        echo "Error: Blueprint '{$key}' has no valid version.\n";
         return null;
     }
 
     return [
         'key' => $key,
-        'name' => $starter['name'] ?? $key,
-        'data' => $starter,
+        'name' => $blueprint['name'] ?? $key,
+        'data' => $blueprint,
         'version' => $latest,
-        'versionData' => $starter['versions'][$latest],
+        'versionData' => $blueprint['versions'][$latest],
     ];
 }
 
-function displayStarterList(array $registry): void
+function displayBlueprintList(array $registry): void
 {
-    echo "\nAvailable starters:\n\n";
-    foreach ($registry as $key => $starter) {
-        $name = $starter['name'] ?? $key;
-        $description = $starter['description'] ?? '';
-        $latest = $starter['latest'] ?? '?';
+    echo "\nAvailable blueprints:\n\n";
+    foreach ($registry as $key => $blueprint) {
+        $name = $blueprint['name'] ?? $key;
+        $description = $blueprint['description'] ?? '';
+        $latest = $blueprint['latest'] ?? '?';
 
         echo "  {$key}";
         if ($name !== $key) {
@@ -475,7 +475,7 @@ function displayStarterList(array $registry): void
         }
 
         $modules = [];
-        $versionData = $starter['versions'][$starter['latest']] ?? null;
+        $versionData = $blueprint['versions'][$blueprint['latest']] ?? null;
         if ($versionData && isset($versionData['modules'])) {
             $modules = array_keys($versionData['modules']);
         }
@@ -495,7 +495,7 @@ function selectConfigOptions(array $versionData, InteractiveSelect $interactive,
         return [];
     }
 
-    echo "\n── Starter Configuration ──────────────────────────────\n";
+    echo "\n── Blueprint Configuration ─────────────────────────────\n";
 
     $selectedValues = [];
 
@@ -927,15 +927,15 @@ function displayHelp(): void
     echo "  <name>                   Create a new directory with the given name\n";
     echo "  <path>      Use the exact path (absolute or relative)\n\n";
     echo "Options:\n";
-    echo "  --starter=<name>         Use the specified starter kit (skip interactive picker)\n";
+    echo "  --blueprint=<name>       Use the specified blueprint (skip interactive picker)\n";
     echo "  --kernel=<version>       Specify the kernel version to install (e.g., 5.0.2)\n";
     echo "  --yes, -y                Auto-confirm all prompts (for CI/automation)\n";
-    echo "  --list, -l               List available starter kits and exit\n";
+    echo "  --list, -l               List available blueprints and exit\n";
     echo "  --help, -h               Display this help message\n\n";
     echo "Examples:\n";
     echo "  php create-project.php                     # Interactive mode\n";
     echo "  php create-project.php .                   # Scaffold in current directory\n";
     echo "  php create-project.php my-app              # Create ./my-app/\n";
-    echo "  php create-project.php my-app --starter=blank --yes\n";
+    echo "  php create-project.php my-app --blueprint=blank --yes\n";
     echo "  php create-project.php --list\n";
 }
